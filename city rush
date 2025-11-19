@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>City Rush Runner</title>
+    <link href="https://fonts.googleapis.com/css2?family=Righteous&family=Poppins:wght@600;800&display=swap" rel="stylesheet">https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3105430858659577
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            touch-action: none;
+        }
+
+        #gameContainer {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            max-width: 480px;
+            max-height: 100vh;
+            background: #1a1a2e;
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(180deg, #87ceeb 0%, #b0d4f1 50%, #8b9dc3 100%);
+        }
+
+        .ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .score-display {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: 'Righteous', cursive;
+            font-size: 36px;
+            color: #fff;
+            text-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            z-index: 100;
+        }
+
+        .coins-display {
+            position: absolute;
+            top: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: 'Poppins', sans-serif;
+            font-size: 24px;
+            color: #ffd700;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            z-index: 100;
+        }
+
+        #menuScreen, #gameOverScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+            pointer-events: all;
+            z-index: 1000;
+        }
+
+        h1 {
+            font-family: 'Righteous', cursive;
+            font-size: clamp(48px, 12vw, 72px);
+            background: linear-gradient(45deg, #ff6b6b, #ffd93d, #6bcf7f, #4ecdc4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-align: center;
+            animation: rainbow 3s ease infinite;
+            background-size: 300% 300%;
+        }
+
+        @keyframes rainbow {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .character-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin: 20px;
+        }
+
+        .character-box {
+            width: 80px;
+            height: 80px;
+            background: rgba(255,255,255,0.1);
+            border: 3px solid transparent;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .character-box:hover {
+            transform: scale(1.1);
+            background: rgba(255,255,255,0.2);
+        }
+
+        .character-box.selected {
+            border-color: #ffd93d;
+            box-shadow: 0 0 20px rgba(255,217,61,0.6);
+            transform: scale(1.15);
+        }
+
+        .btn {
+            font-family: 'Poppins', sans-serif;
+            font-size: 24px;
+            font-weight: 800;
+            padding: 18px 60px;
+            border: none;
+            border-radius: 50px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            box-shadow: 0 10px 30px rgba(245,87,108,0.4);
+            transition: all 0.3s ease;
+            pointer-events: all;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(245,87,108,0.6);
+        }
+
+        .btn:active {
+            transform: translateY(-1px);
+        }
+
+        .instructions {
+            color: rgba(255,255,255,0.8);
+            font-size: 16px;
+            text-align: center;
+            max-width: 90%;
+            line-height: 1.8;
+        }
+
+        .final-score {
+            font-family: 'Righteous', cursive;
+            font-size: 48px;
+            color: #ffd93d;
+            text-shadow: 0 0 20px rgba(255,217,61,0.5);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .swipe-hint {
+            position: absolute;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255,255,255,0.6);
+            font-size: 14px;
+            animation: pulse 2s ease infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 1; }
+        }
+
+        @media (max-width: 480px) {
+            .character-box {
+                width: 60px;
+                height: 60px;
+                font-size: 36px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+
+        <div class="ui-overlay">
+            <div class="score-display hidden" id="scoreDisplay">0</div>
+            <div class="coins-display hidden" id="coinsDisplay">💰 0</div>
+        </div>
+
+        <div id="menuScreen">
+            <h1>CITY RUSH</h1>
+            <p style="color: #4ecdc4; font-size: 18px; letter-spacing: 3px;">ENDLESS RUNNER</p>
+
+            <div>
+                <p style="color: white; margin-bottom: 15px; font-size: 16px;">Choose Your Character</p>
+                <div class="character-grid">
+                    <div class="character-box selected" data-char="🏃">🏃</div>
+                    <div class="character-box" data-char="🚴">🚴</div>
+                    <div class="character-box" data-char="🛹">🛹</div>
+                    <div class="character-box" data-char="🏂">🏂</div>
+                    <div class="character-box" data-char="⛷">⛷</div>
+                    <div class="character-box" data-char="🤸">🤸</div>
+                </div>
+            </div>
+
+            <button class="btn" id="startBtn">START</button>
+
+            <div class="instructions">
+                <strong>SWIPE or ARROW KEYS</strong><br>
+                ← → to move lanes | ↑ to jump | ↓ to slide<br>
+                Collect coins & avoid obstacles!
+            </div>
+        </div>
+
+        <div id="gameOverScreen" class="hidden">
+            <h1>GAME OVER</h1>
+            <div class="final-score" id="finalScore">0</div>
+            <div style="color: #ffd93d; font-size: 20px;" id="finalCoins">💰 0</div>
+            <button class="btn" id="restartBtn">RESTART</button>
+        </div>
+
+        <div class="swipe-hint hidden" id="swipeHint">Swipe to move!</div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Responsive canvas
+        function resizeCanvas() {
+            const container = document.getElementById('gameContainer');
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Game constants
+        const LANES = 3;
+        const LANE_WIDTH = () => canvas.width / LANES;
+
+        // Character selection
+        let selectedChar = '🏃';
+        document.querySelectorAll('.character-box').forEach(box => {
+            box.addEventListener('click', function() {
+                document.querySelectorAll('.character-box').forEach(b => b.classList.remove('selected'));
+                this.classList.add('selected');
+                selectedChar = this.dataset.char;
+            });
+        });
+
+        // Game state
+        let game = {
+            running: false,
+            score: 0,
+            coins: 0,
+            speed: 5,
+            player: null,
+            obstacles: [],
+            coinsList: [],
+            powerups: [],
+            particles: [],
+            groundOffset: 0,
+            frame: 0
+        };
+
+        // Player class
+        class Player {
+            constructor() {
+                this.lane = 1; // 0, 1, or 2
+                this.targetX = LANE_WIDTH() * this.lane + LANE_WIDTH() / 2;
+                this.x = this.targetX;
+                this.y = canvas.height * 0.7;
+                this.width = canvas.width * 0.12;
+                this.height = canvas.width * 0.12;
+                this.vy = 0;
+                this.jumping = false;
+                this.sliding = false;
+                this.char = selectedChar;
+                this.rotation = 0;
+            }
+
+            moveLeft() {
+                if (this.lane > 0) {
+                    this.lane--;
+                    this.targetX = LANE_WIDTH() * this.lane + LANE_WIDTH() / 2;
+                }
+            }
+
+            moveRight() {
+                if (this.lane < LANES - 1) {
+                    this.lane++;
+                    this.targetX = LANE_WIDTH() * this.lane + LANE_WIDTH() / 2;
+                }
+            }
+
+            jump() {
+                if (!this.jumping && !this.sliding) {
+                    this.jumping = true;
+                    this.vy = -canvas.height * 0.025;
+                }
+            }
+
+            slide() {
+                if (!this.jumping && !this.sliding) {
+                    this.sliding = true;
+                    setTimeout(() => this.sliding = false, 500);
+                }
+            }
+
+            update() {
+                // Smooth lane transition
+                this.x += (this.targetX - this.x) * 0.2;
+
+                // Jumping physics
+                if (this.jumping) {
+                    this.vy += canvas.height * 0.0012;
+                    this.y += this.vy;
+
+                    if (this.y >= canvas.height * 0.7) {
+                        this.y = canvas.height * 0.7;
+                        this.jumping = false;
+                        this.vy = 0;
+                    }
+                }
+
+                // Sliding
+                if (this.sliding) {
+                    this.height = canvas.width * 0.06;
+                } else {
+                    this.height = canvas.width * 0.12;
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y + this.height / 2);
+                if (this.jumping) {
+                    ctx.rotate(Math.sin(game.frame * 0.2) * 0.3);
+                }
+                ctx.font = ${this.width}px Arial;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(this.char, 0, 0);
+                ctx.restore();
+            }
+
+            getBounds() {
+                return {
+                    x: this.x - this.width / 2,
+                    y: this.y,
+                    width: this.width,
+                    height: this.height
+                };
+            }
+        }
+
+        // Obstacle class
+        class Obstacle {
+            constructor(lane, type = 'barrier') {
+                this.lane = lane;
+                this.x = LANE_WIDTH() * lane + LANE_WIDTH() / 2;
+                this.y = -canvas.height * 0.2;
+                this.width = LANE_WIDTH() * 0.8;
+                this.height = canvas.width * 0.15;
+                this.speed = game.speed;
+                this.type = type;
+                this.emoji = type === 'car' ? '🚗' : type === 'bus' ? '🚌' : '🚧';
+                this.passed = false;
+            }
+
+            update() {
+                this.y += this.speed;
+            }
+
+            draw() {
+                ctx.font = ${this.height}px Arial;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(this.emoji, this.x, this.y + this.height / 2);
+            }
+
+            isOffScreen() {
+                return this.y > canvas.height;
+            }
+
+            collidesWith(player) {
+                const pb = player.getBounds();
+                return !(pb.x + pb.width < this.x - this.width / 2 ||
+                        pb.x > this.x + this.width / 2 ||
+                        pb.y + pb.height < this.y ||
+                        pb.y > this.y + this.height);
+            }
+        }
+
+        // Coin class
+        class Coin {
+            constructor(lane) {
+                this.lane = lane;
+                this.x = LANE_WIDTH() * lane + LANE_WIDTH() / 2;
+                this.y = -50;
+                this.size = canvas.width * 0.08;
+                this.speed = game.speed;
+                this.collected = false;
+                this.rotation = 0;
+            }
+
+            update() {
+                this.y += this.speed;
+                this.rotation += 0.1;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.rotation);
+                ctx.font = ${this.size}px Arial;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('🪙', 0, 0);
+                ctx.restore();
+            }
+
+            isOffScreen() {
+                return this.y > canvas.height;
+            }
+
+            collidesWith(player) {
+                const pb = player.getBounds();
+                const dist = Math.hypot(this.x - pb.x - pb.width / 2, this.y - pb.y - pb.height / 2);
+                return dist < this.size;
+            }
+        }
+
+        // Initialize game
+        function initGame() {
+            game.running = true;
+            game.score = 0;
+            game.coins = 0;
+            game.speed = 5;
+            game.player = new Player();
+            game.obstacles = [];
+            game.coinsList = [];
+            game.powerups = [];
+            game.particles = [];
+            game.groundOffset = 0;
+            game.frame = 0;
+
+            updateScore();
+            updateCoins();
+        }
+
+        // Spawn obstacles
+        function spawnObstacle() {
+            const lane = Math.floor(Math.random() * LANES);
+            const types = ['car', 'bus', 'barrier'];
+            const type = types[Math.floor(Math.random() * types.length)];
+            game.obstacles.push(new Obstacle(lane, type));
+        }
+
+        // Spawn coins
+        function spawnCoin() {
+            const lane = Math.floor(Math.random() * LANES);
+            game.coinsList.push(new Coin(lane));
+        }
+
+        // Update score
+        function updateScore() {
+            document.getElementById('scoreDisplay').textContent = Math.floor(game.score);
+            document.getElementById('finalScore').textContent = Math.floor(game.score);
+        }
+
+        function updateCoins() {
+            document.getElementById('coinsDisplay').textContent = 💰 ${game.coins};
+            document.getElementById('finalCoins').textContent = 💰 ${game.coins};
+        }
+
+        // Draw background
+        function drawBackground() {
+            // Sky
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#87ceeb');
+            gradient.addColorStop(0.5, '#b0d4f1');
+            gradient.addColorStop(1, '#8b9dc3');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Ground
+            ctx.fillStyle = '#333';
+            ctx.fillRect(0, canvas.height * 0.8, canvas.width, canvas.height * 0.2);
+
+            // Lane lines
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 3;
+            ctx.setLineDash([20, 20]);
+
+            for (let i = 1; i < LANES; i++) {
+                const x = LANE_WIDTH() * i;
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height * 0.8);
+                ctx.stroke();
+            }
+            ctx.setLineDash([]);
+
+            // Moving ground lines
+            ctx.strokeStyle = '#ffff00';
+            ctx.lineWidth = 4;
+            ctx.setLineDash([30, 30]);
+            game.groundOffset = (game.groundOffset + game.speed) % 60;
+            ctx.lineDashOffset = -game.groundOffset;
+
+            for (let i = 1; i < LANES; i++) {
+                const x = LANE_WIDTH() * i;
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height * 0.8);
+                ctx.stroke();
+            }
+            ctx.setLineDash([]);
+        }
+
+        // Game loop
+        function gameLoop() {
+            if (!game.running) return;
+
+            game.frame++;
+            game.score += 0.1;
+            updateScore();
+
+            // Increase difficulty
+            if (game.frame % 300 === 0) {
+                game.speed += 0.3;
+            }
+
+            // Clear and draw
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBackground();
+
+            // Update player
+            game.player.update();
+            game.player.draw();
+
+            // Update obstacles
+            if (game.frame % 80 === 0) {
+                spawnObstacle();
+            }
+
+            game.obstacles = game.obstacles.filter(obs => {
+                obs.update();
+                obs.draw();
+
+                if (obs.collidesWith(game.player) && !obs.passed) {
+                    endGame();
+                    return false;
+                }
+
+                if (!obs.passed && obs.y > canvas.height * 0.7) {
+                    obs.passed = true;
+                }
+
+                return !obs.isOffScreen();
+            });
+
+            // Update coins
+            if (game.frame % 50 === 0) {
+                spawnCoin();
+            }
+
+            game.coinsList = game.coinsList.filter(coin => {
+                coin.update();
+                coin.draw();
+
+                if (!coin.collected && coin.collidesWith(game.player)) {
+                    coin.collected = true;
+                    game.coins++;
+                    game.score += 10;
+                    updateCoins();
+                    updateScore();
+                    return false;
+                }
+
+                return !coin.isOffScreen();
+            });
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // End game
+        function endGame() {
+            game.running = false;
+            document.getElementById('gameOverScreen').classList.remove('hidden');
+            document.getElementById('scoreDisplay').classList.add('hidden');
+            document.getElementById('coinsDisplay').classList.add('hidden');
+        }
+
+        // Input handling
+        let touchStartX = 0;
+        let touchStartY = 0;
+
+        document.addEventListener('keydown', (e) => {
+            if (!game.running) return;
+
+            if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                game.player.moveLeft();
+            } else if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                game.player.moveRight();
+            } else if (e.key === 'ArrowUp' || e.key === ' ') {
+                e.preventDefault();
+                game.player.jump();
+            } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                game.player.slide();
+            }
+        });
+
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+        });
+
+        canvas.addEventListener('touchend', (e) => {
+            if (!game.running) return;
+            e.preventDefault();
+
+            const touchEndX = e.changedTouches[0].clientX;
+            const touchEndY = e.changedTouches[0].clientY;
+            const dx = touchEndX - touchStartX;
+            const dy = touchEndY - touchStartY;
+
+            if (Math.abs(dx) > Math.abs(dy)) {
+                if (dx > 30) game.player.moveRight();
+                else if (dx < -30) game.player.moveLeft();
+            } else {
+                if (dy < -30) game.player.jump();
+                else if (dy > 30) game.player.slide();
+            }
+        });
+
+        // Start game
+        document.getElementById('startBtn').addEventListener('click', () => {
+            document.getElementById('menuScreen').classList.add('hidden');
+            document.getElementById('scoreDisplay').classList.remove('hidden');
+            document.getElementById('coinsDisplay').classList.remove('hidden');
+            initGame();
+            gameLoop();
+        });
+
+        // Restart game
+        document.getElementById('restartBtn').addEventListener('click', () => {
+            document.getElementById('gameOverScreen').classList.add('hidden');
+            document.getElementById('scoreDisplay').classList.remove('hidden');
+            document.getElementById('coinsDisplay').classList.remove('hidden');
+            initGame();
+            gameLoop();
+        });
+    </script>
+</body>
+</html>
